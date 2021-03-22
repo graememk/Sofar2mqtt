@@ -467,14 +467,14 @@ void mqttCallback(String topic, byte* message, unsigned int length) {
 		{
 			BATTERYSAVE = true;
 
-      //added the command to set the inverter to standby when battery_save is enabled
+     //added the command to set the inverter to standby when battery_save is enabled
+
       modbusResponce responce = sendModbus(setStandby, sizeof(setStandby));
       if (responce.errorLevel == 0)
       {
         Serial.println(responce.errorMessage);
         INVERTER_COMMAND = 4;
       }
-
 		}
 	}
 	else if (topic==chargeMode)
