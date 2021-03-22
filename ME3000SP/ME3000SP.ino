@@ -87,6 +87,16 @@ SoftwareSerial RS485Serial(RXPin, TXPin);
 #define faultState 6
 #define permanentFaultState 7
 unsigned int INVERTER_RUNNINGSTATE;
+unsigned int INVERTER_COMMAND = 9;
+/*What the inverter is currently set to via MQTT -  
+ * 9 - unknown - default until command is received
+ * 0 - Standby
+ * 1 - Charge
+ * 2 - Discharge
+ * 3 - Auto
+ * 4 - battery_save
+ * Using the If statement in the commands, If no Error, im assuming that it was successful.
+*/
 // Battery Save mode is a hybrid mode where the battery will charge from excess solar but not discharge.
 bool BATTERYSAVE = false;
 // Sofar Modbus commands.
@@ -389,6 +399,10 @@ void sendData()
 			if (!( state == "{")) { state += ","; }
 			state += "\"solarPVAmps\":"+String(t);
 		}
+    //adding in the new variable.
+    if (!( state == "{")) { state += ","; }
+    state += "\"InverterCommand\":"+String(INVERTER_COMMAND);
+   
 		state = state+"}";
 		
 		//Prefixt the mqtt topic name with deviceName.
@@ -432,6 +446,7 @@ void mqttCallback(String topic, byte* message, unsigned int length) {
 			if (responce.errorLevel == 0)
 			{
 				Serial.println(responce.errorMessage);
+        INVERTER_COMMAND = 0;
 			}
 		}
 	}
@@ -444,16 +459,21 @@ void mqttCallback(String topic, byte* message, unsigned int length) {
 			if (responce.errorLevel == 0)
 			{
 				Serial.println(responce.errorMessage);
+        INVERTER_COMMAND = 3;
 			}
+
 		}
 		else if(messageTemp == "battery_save")
 		{
 			BATTERYSAVE = true;
+
      //added the command to set the inverter to standby when battery_save is enabled
+
       modbusResponce responce = sendModbus(setStandby, sizeof(setStandby));
       if (responce.errorLevel == 0)
       {
         Serial.println(responce.errorMessage);
+        INVERTER_COMMAND = 4;
       }
 		}
 	}
@@ -470,6 +490,7 @@ void mqttCallback(String topic, byte* message, unsigned int length) {
 				if (responce.errorLevel == 0)
 				{
 					Serial.println(responce.errorMessage);
+          INVERTER_COMMAND = 1;
 				}
 			}
 		}
@@ -487,6 +508,7 @@ void mqttCallback(String topic, byte* message, unsigned int length) {
 				if (responce.errorLevel == 0)
 				{
 					Serial.println(responce.errorMessage);
+          INVERTER_COMMAND = 2;
 				}
 			}
 		}
